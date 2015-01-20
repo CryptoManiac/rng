@@ -9,9 +9,10 @@
 
 #define BUTTON_PIN 0
 
-extern unsigned long volatile jiffies;
+#define HZ 100
 
 // the event counters
+volatile clock_t t0 = 0;
 volatile clock_t t1 = 0;
 volatile clock_t t2 = 0;
 volatile clock_t t3 = 0;
@@ -19,7 +20,32 @@ volatile clock_t t4 = 0;
 
 volatile int count = 0;
 
+FILE *f;
+
 struct tms tms;
+
+void WriteBit (int bit, FILE *f)
+{
+    static volatile int current_bit = 0;
+    static volatile unsigned char bit_buffer = 0;
+    unsigned char byte;
+    clock_t t, dt;
+
+    if (bit)
+	bit_buffer |= (1<<(7-current_bit));
+
+    if (++current_bit > 7) {
+	t = times(&tms);
+	dt = t-t0;
+	t0 = t;
+	byte = bit_buffer;
+	fwrite (&byte, 1, 1, f);
+	fflush(f);
+	current_bit = 0;
+	bit_buffer = 0;
+	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 32*14.4/((float)dt/(float)HZ*420));
+    }
+}
 
 // -------------------------------------------------------------------------
 // myInterrupt:  called every time an event occurs
@@ -39,8 +65,10 @@ void myInterrupt(void) {
 	    count = 0;
 	    if((t4-t3) > (t2-t1)) {
 		printf("1");
-	    } else {
+		WriteBit(1,f);
+	    } else if((t4-t3) < (t2-t1)) {
 		printf("0");
+		WriteBit(0,f);
 	    }
 	    fflush(stdout);
 	    break;
@@ -53,6 +81,10 @@ void myInterrupt(void) {
 // -------------------------------------------------------------------------
 // main
 int main(void) {
+
+    // open output file
+    f = fopen("out.bin", "ab+");
+
   // sets up the wiringPi library
   if (wiringPiSetup () < 0) {
       fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
@@ -66,13 +98,13 @@ int main(void) {
       return 1;
   }
 
-  // initialize timer counter
-  t1 = times(&tms);
+  // initialize timer counters
+  t0 = t1 = t2 = t3 = t4 = times(&tms);
 
-  // display counter value every second.
-  while ( 1 ) {
-    delay( 1000 ); // wait 1 second
-  }
+    // main loop
+    while ( 1 ) {
+	delay( 1000 ); // wait 1 second
+    }
 
   return 0;
 }
