@@ -14,15 +14,39 @@ extern unsigned long volatile jiffies;
 // the event counters
 volatile clock_t t1 = 0;
 volatile clock_t t2 = 0;
+volatile clock_t t3 = 0;
+volatile clock_t t4 = 0;
+
+volatile int count = 0;
 
 struct tms tms;
 
 // -------------------------------------------------------------------------
 // myInterrupt:  called every time an event occurs
 void myInterrupt(void) {
-   t2 = t1;
-   t1 = times(&tms);
-   printf("%03x\r\n", t1-t2);
+    switch(count++) {
+	case 0:
+	    t1 = times(&tms);
+	    break;
+	case 1:
+	    t2 = times(&tms);
+	    break;
+	case 2:
+	    t3 = times(&tms);
+	    break;
+	case 3:
+	    t4 = times(&tms);
+	    count = 0;
+	    if((t4-t3) > (t2-t1)) {
+		printf("1");
+	    } else {
+		printf("0");
+	    }
+	    fflush(stdout);
+	    break;
+	default:
+	    count = 0;
+    }
 }
 
 
