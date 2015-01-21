@@ -9,6 +9,8 @@
 
 #define BUTTON_PIN 0
 
+#define TRUE_RNG 1
+#define FAST_RNG 1
 #define HZ 100
 
 // the event counters
@@ -43,13 +45,33 @@ void WriteBit (int bit, FILE *f)
 	fflush(f);
 	current_bit = 0;
 	bit_buffer = 0;
+#ifdef FAST_RNG
+	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 8*14.4/((float)dt/(float)HZ*420));
+#else
 	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 32*14.4/((float)dt/(float)HZ*420));
+#endif
     }
 }
 
 // -------------------------------------------------------------------------
 // myInterrupt:  called every time an event occurs
 void myInterrupt(void) {
+#ifdef FAST_RNG
+    clock_t dt;
+
+	dt = t2-t1;
+	t1 = t2;
+	t2 = times(&tms);
+	if(dt > (t2-t1)) {
+	    printf("1");
+	    WriteBit(1,f);
+	} else if(dt < (t2-t1)) {
+	    printf("0");
+	    WriteBit(0,f);
+	}
+	fflush(stdout);
+
+#else
     switch(count++) {
 	case 0:
 	    t1 = times(&tms);
@@ -75,6 +97,7 @@ void myInterrupt(void) {
 	default:
 	    count = 0;
     }
+#endif
 }
 
 
