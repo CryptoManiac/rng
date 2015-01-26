@@ -9,8 +9,11 @@
 
 #define BUTTON_PIN 0
 
-#define TRUE_RNG 1
+//#define TRUE_RNG 1
+//#define FASTER_RNG 1
 #define FAST_RNG 1
+//#define FASTEST_RNG 1
+
 #define HZ 100
 
 // the event counters
@@ -46,9 +49,16 @@ void WriteBit (int bit, FILE *f)
 	current_bit = 0;
 	bit_buffer = 0;
 #ifdef FAST_RNG
-	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 8*14.4/((float)dt/(float)HZ*420));
-#else
-	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 32*14.4/((float)dt/(float)HZ*420));
+	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 16*144/((float)dt/(float)HZ*420));
+#endif
+#ifdef FASTEST_RNG
+	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 8*144/((float)dt/(float)HZ*420));
+#endif
+#ifdef FASTER_RNG
+	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 24*144/((float)dt/(float)HZ*420));
+#endif
+#ifdef TRUE_RNG
+	printf(" 0x%02X %1.3f bps %1.3f uSv/h\r\n", byte, 8.0/((float)dt/(float)HZ), 32*144/((float)dt/(float)HZ*420));
 #endif
     }
 }
@@ -56,9 +66,9 @@ void WriteBit (int bit, FILE *f)
 // -------------------------------------------------------------------------
 // myInterrupt:  called every time an event occurs
 void myInterrupt(void) {
-#ifdef FAST_RNG
-    clock_t dt;
+	clock_t dt;
 
+#ifdef FASTEST_RNG
 	dt = t2-t1;
 	t1 = t2;
 	t2 = times(&tms);
@@ -70,8 +80,53 @@ void myInterrupt(void) {
 	    WriteBit(0,f);
 	}
 	fflush(stdout);
+#endif
 
-#else
+#ifdef FAST_RNG
+	count = ++count & 0x01;
+
+	if(!count) {
+	    t2 = times(&tms);
+	} else {
+	    t1 = t3;
+	    t3 = times(&tms);
+	    if((t2-t1) > (t3-t2)) {
+		printf("1");
+		WriteBit(1,f);
+	    } else if((t2-t1) < (t3-t2)) {
+		printf("0");
+		WriteBit(0,f);
+	    }
+	    fflush(stdout);
+	}
+#endif
+
+#ifdef FASTER_RNG
+    switch(count++) {
+	case 0:
+	    t1 = times(&tms);
+	    break;
+	case 1:
+	    t2 = times(&tms);
+	    break;
+	case 2:
+	    t3 = times(&tms);
+	    count = 0;
+	    if((t3-t2) > (t2-t1)) {
+		printf("1");
+		WriteBit(1,f);
+	    } else if((t3-t2) < (t2-t1)) {
+		printf("0");
+		WriteBit(0,f);
+	    }
+	    fflush(stdout);
+	    break;
+	default:
+	    count = 0;
+    }
+#endif
+
+#ifdef TRUE_RNG
     switch(count++) {
 	case 0:
 	    t1 = times(&tms);
