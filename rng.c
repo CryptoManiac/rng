@@ -154,6 +154,9 @@ int main(void) {
     }
 
     pwmSetClock(1);
+    
+    // set up pointer, based on mapped page
+    timer = (int64_t *)((char *)st_base + TIMER_OFFSET);
 
     // set Pins 17/0 and 24/5 to generate an interrupt on low-to-high transitions
     // and attach myInterrupt() to the interrupt
@@ -162,10 +165,6 @@ int main(void) {
         return 1;
     }
 
-
-    // set up pointer, based on mapped page
-    timer = (int64_t *)((char *)st_base + TIMER_OFFSET);
- 
     // initialize timer counters
     t0 = t1 = t2 = t3 = t4 = *timer;
 
