@@ -1,0 +1,9 @@
+GPIO generator:
+
+$ gcc -o rng rng.c -lwiringPi
+$ sudo ./rng
+
+PCM generator:
+
+$ gcc -c rng_pcm.c -o rng_pcm
+$ arecord -c 1 -f S16_LE -r 48000 -D default | ./rng_pcm
