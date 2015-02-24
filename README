@@ -7,3 +7,10 @@ PCM generator:
 
 $ gcc -c rng_pcm.c -o rng_pcm
 $ arecord -c 1 -f S16_LE -r 48000 -D default -t raw | ./rng_pcm
+
+PCM graphic print:
+
+$ cd pcm_graph
+$ qmake
+$ make
+$ dd if=../sample_pcm.raw of=/dev/stdout bs=2 skip=200 count=300 status=none | ./pcm_graph
